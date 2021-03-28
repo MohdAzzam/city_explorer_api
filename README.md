@@ -1,4 +1,3 @@
-
 # City Explorer Api
 
 **Author**: Mohammad Alazzam
