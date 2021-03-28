@@ -7,7 +7,8 @@ const cors = require('cors'); //api call out of domain
 const app = express();
 
 app.use(cors());
-app.listen(process.env.PORT|| PORT, () => {
+
+app.listen(process.env.PORT || PORT, () => {
     console.log('Server Start at ' + PORT + ' .... ');
 })
 // constrctur function handle city location
