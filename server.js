@@ -7,7 +7,9 @@ const cors = require('cors'); //api call out of domain
 const app = express();
 
 app.use(cors());
-
+app.listen(PORT, () => {
+    console.log('Server Start at ' + PORT + ' .... ');
+})
 // constrctur function handle city location
 
 function City(search_query, formatted_query, latitude, longitude) {
@@ -46,6 +48,7 @@ function handleWeather(req, res) {
     let data = getWeather.data;
     console.log(data.length);
     data.forEach(((item) => {
+        // eslint-disable-next-line no-unused-vars
         let weather = new Weather(item.valid_date,item.weather.description);
         array.push({ 'time': item.valid_date, 'forecast': item.weather.description })
     }))
@@ -53,17 +56,3 @@ function handleWeather(req, res) {
     res.send(array);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-app.listen(PORT, () => {
-    console.log('Server Start at ' + PORT + ' .... ');
-})
