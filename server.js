@@ -3,7 +3,7 @@ const PORT = 3000;
 
 const express = require('express'); // express framwork
 const cors = require('cors'); //api call out of domain
-
+const superagent = require('superagent');
 const app = express();
 
 app.use(cors());
@@ -12,49 +12,84 @@ app.listen(process.env.PORT || PORT, () => {
     console.log('Server Start at ' + PORT + ' .... ');
 })
 // constrctur function handle city location
-
-function City(search_query, formatted_query, latitude, longitude) {
-    this.search_query = search_query,
-        this.formatted_query = formatted_query,
-        this.latitude = latitude,
-        this.longitude = longitude
+let localCity=[];
+function City(city, geoData) {
+    this.search_query = city;
+    this.formatted_query = geoData.display_name;
+    this.latitude = geoData.lat;
+    this.longitude = geoData.lon;
+    localCity.push(this);
 }
 
 app.get('/location', handleLocation);
+const myLocalLocations = {};
+function handleLocation(req, response) {
+    let city = req.query.city;
+    let key = 'pk.538f70ca6f8929f9ab54209f14c5bd28';
+    const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+    superagent.get(url).then(res => {
+        const locationData = res.body[0];
+        const location = new City(city, locationData);
+        myLocalLocations.lat = locationData.lat;
+        myLocalLocations.lon = locationData.lon;
+        response.send(location);
 
-function handleLocation(req, res) {
-    const getLocation = require('./data/location.json'); // get the data from the json file
-    console.log(req.query) // see the data was recived
-    const search_query = req.query.city; //get the name that user entered
-    const formatted_query = getLocation[0].display_name;
-    const latitude = getLocation[0].lat;
-    const longitude = getLocation[0].lon;
-    let cityLocation = new City(search_query, formatted_query, latitude, longitude);
-    console.log(cityLocation);
-    res.send(cityLocation); //send the data to the frontend side
+    }).catch((err) => {
+        console.log('ERROR !! ', err);
+    });
+
 }
 
 /* constractor function that handel the weather in the same location */
 
-function Weather(time, description) {
-    this.time = time,
-        this.description = description
+function Weather(item) {
+    this.time = item.datetime,
+    this.forecast = item.weather.description
 }
 app.get('/weather', handleWeather);
 
-function handleWeather(req, res) {
-    const getWeather = require('./data/weather.json'); // get the data from the json file
-    let array = [];
+function handleWeather(request, response) {
+    let lat = myLocalLocations.lat;
+    let lon = myLocalLocations.lon;
+    console.log(lat, ' ', lon);
+    let key = 'e469e0f7881e4974a5f2279ed3d14eda';
+    const url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${lat}&lon=${lon}&key=${key}`;
+    superagent.get(url).then(res => {
+        let currentWeather = [];
+        res.body.data.map(item => {
+            currentWeather.push(new Weather(item));
+            return currentWeather;
+        })
+        response.send(currentWeather);
+    }).catch(err => {
+        response.status(404).send('requested API is Not Found!');
+    })
+}
 
-    let data = getWeather.data;
-    console.log(data.length);
-    data.forEach(((item) => {
-        // eslint-disable-next-line no-unused-vars
-        let weather = new Weather(item.valid_date, item.weather.description);
-        array.push({ 'time': item.valid_date, 'forecast': item.weather.description })
-    }))
-    console.log(array);
-    res.send(array);
+function Park(park) {
+    this.name =park.fullName,
+    this.park_url=park.url,
+    // this.location=park[0].addresses,
+    this.fee='0',
+    this.description=park.description
+}
+app.get('/parks', handelPark);
+
+function handelPark(request, response) {
+    let key = 'NGmpAlIwWG5l9s2B7J7FQgWcP5Yka9qhCKoGu0U2';
+    const url = `https://developer.nps.gov/api/v1/parks?parkCode=acad&api_key=${key}`;
+    superagent.get(url)
+        .then(res => {
+            let parks = [];
+            res.body.data.map(item=>{
+                parks.push(new Park(item))
+                return parks;
+            })
+            response.send(parks)
+        })
+        .catch(err => {
+            response.status(404).send('ERROR !!', err);
+        })
 }
 
 
