@@ -1,6 +1,6 @@
 'use strict';
 const PORT = 3000;
-
+require('dotenv').config();
 const express = require('express'); // express framwork
 const cors = require('cors'); //api call out of domain
 const superagent = require('superagent');
@@ -77,7 +77,7 @@ app.get('/parks', handelPark);
 
 function handelPark(request, response) {
     let key = 'NGmpAlIwWG5l9s2B7J7FQgWcP5Yka9qhCKoGu0U2';
-    const url = `https://developer.nps.gov/api/v1/parks?parkCode=acad&api_key=${key}`;
+    const url = `https://developer.nps.gov/api/v1/parks?parkCode=la&limit=10&api_key=${key}`;
     superagent.get(url)
         .then(res => {
             let parks = [];
