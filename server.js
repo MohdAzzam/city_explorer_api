@@ -15,9 +15,9 @@ app.listen(process.env.PORT || PORT, () => {
 
 function City(search_query, formatted_query, latitude, longitude) {
     this.search_query = search_query,
-    this.formatted_query = formatted_query,
-    this.latitude = latitude,
-    this.longitude = longitude
+        this.formatted_query = formatted_query,
+        this.latitude = latitude,
+        this.longitude = longitude
 }
 
 app.get('/location', handleLocation);
@@ -38,7 +38,7 @@ function handleLocation(req, res) {
 
 function Weather(time, description) {
     this.time = time,
-    this.description = description
+        this.description = description
 }
 app.get('/weather', handleWeather);
 
@@ -50,10 +50,22 @@ function handleWeather(req, res) {
     console.log(data.length);
     data.forEach(((item) => {
         // eslint-disable-next-line no-unused-vars
-        let weather = new Weather(item.valid_date,item.weather.description);
+        let weather = new Weather(item.valid_date, item.weather.description);
         array.push({ 'time': item.valid_date, 'forecast': item.weather.description })
     }))
     console.log(array);
     res.send(array);
 }
 
+
+app.use('*', (req, res) => {
+    let status = 404;
+    res.status().send({ status: status, message: 'Page Not Found' });
+})
+
+app.use(errorHandler);
+
+
+function errorHandler(err, request, response, next) {
+    response.status(500).send('something is wrong in server');
+}
