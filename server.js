@@ -3,16 +3,25 @@ const PORT = 3000;
 require('dotenv').config();
 const express = require('express'); // express framwork
 const cors = require('cors'); //api call out of domain
+const pg = require('pg');
 const superagent = require('superagent');
 const app = express();
 
+const client = new pg.Client(process.env.DATABASE_URL);
+console.log(process.env.DATABASE_URL);
+// client.on('error', err => console.log("PG PROBLEM!!!"));
 app.use(cors());
 
-app.listen(process.env.PORT || PORT, () => {
-    console.log('Server Start at ' + PORT + ' .... ');
-})
+
+client.connect().then(() => {
+    console.log('Runnnnnnnnnn');
+    app.listen(process.env.PORT || PORT, () => {
+        console.log('Server Start at ' + PORT + ' .... ');
+    })
+});
+
 // constrctur function handle city location
-let localCity=[];
+let localCity = [];
 function City(city, geoData) {
     this.search_query = city;
     this.formatted_query = geoData.display_name;
@@ -21,38 +30,102 @@ function City(city, geoData) {
     localCity.push(this);
 }
 
+
+app.get('/', (req, res) => {
+    let name = req.query.name;
+    let SQL = `SELECT * FROM location WHERE name='${name}'`;
+    client.query(SQL).then(result => {
+        res.send(result.rows);
+    });
+});
+
+
+
+
+let flag = false;
 app.get('/location', handleLocation);
 const myLocalLocations = {};
 function handleLocation(req, response) {
     let city = req.query.city;
-    let key = 'pk.538f70ca6f8929f9ab54209f14c5bd28';
-    const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
-    superagent.get(url).then(res => {
-        const locationData = res.body[0];
-        const location = new City(city, locationData);
-        myLocalLocations.lat = locationData.lat;
-        myLocalLocations.lon = locationData.lon;
-        response.send(location);
-
-    }).catch((err) => {
-        console.log('ERROR !! ', err);
+    let key = process.env.GEOCODE_API_KEY;
+    let SQL = `SELECT * FROM location WHERE name='${city}'`;
+    client.query(SQL).then(result => {
+        result.rows.forEach((element) => {
+            if (element.name === city) {
+                console.log('City Found in DB')
+                flag = true;
+                response.send(element);
+            }
+        });
     });
 
-}
+    if (flag) {
+        const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+        superagent.get(url).then(res => {
+            const locationData = res.body[0];
+            const location = new City(city, locationData);
+            myLocalLocations.lat = locationData.lat;
+            myLocalLocations.lon = locationData.lon;
+            let SQL = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
+            let values = [city, locationData.display_name, locationData.lat, locationData.lon];
+            client.query(SQL, values).then(result => {
+                console.log('INSERT DONE');
+            })
+            response.send(location);
+        }).catch((err) => {
+            console.log('ERROR !! ', err);
+        });
+    }
 
+    // if (checkDb(city) !== []) {
+    //     console.log('FOUND')
+    // } else {
+    // const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+    // superagent.get(url).then(res => {
+    //     const locationData = res.body[0];
+    //     const location = new City(city, locationData);
+    //     myLocalLocations.lat = locationData.lat;
+    //     myLocalLocations.lon = locationData.lon;
+    //     let SQL = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
+    //     let values = [city, locationData.display_name, locationData.lat, locationData.lon];
+    //     client.query(SQL, values).then(result => {
+    //         console.log('INSERT DONE');
+    //     })
+    //     response.send(location);
+    // }).catch((err) => {
+    //     console.log('ERROR !! ', err);
+    // });
+
+    // }
+
+}
+// function checkDb(locationName) {
+//     let SQL = `SELECT * FROM location WHERE name='${locationName}'`;
+//     client.query(SQL).then(result => {
+//         return result.rows;
+//     });
+// }
+
+// app.post('/location', (req, res) => {
+//     let SQL = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
+//     let values = [city, locationData.display_name, locationData.lat, locationData.lon];
+//     client.query(SQL, values).then(result => {
+//         console.log(result.rows);
+//         response.send(result.rows);
+//     });
+// })
 /* constractor function that handel the weather in the same location */
 
 function Weather(item) {
     this.time = item.datetime,
-    this.forecast = item.weather.description
+        this.forecast = item.weather.description
 }
 app.get('/weather', handleWeather);
 
 function handleWeather(request, response) {
     let lat = myLocalLocations.lat;
     let lon = myLocalLocations.lon;
-    console.log(lat, ' ', lon);
-    let key = 'e469e0f7881e4974a5f2279ed3d14eda';
+    let key = process.env.WEATHER_API_KEY;
     const url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${lat}&lon=${lon}&key=${key}`;
     superagent.get(url).then(res => {
         let currentWeather = [];
@@ -67,21 +140,22 @@ function handleWeather(request, response) {
 }
 
 function Park(park) {
-    this.name =park.fullName,
-    this.park_url=park.url,
-    // this.location=park[0].addresses,
-    this.fee='0',
-    this.description=park.description
+    this.name = park.fullName,
+        this.park_url = park.url,
+        // this.location=park[0].addresses,
+        this.fee = '0',
+        this.description = park.description
 }
 app.get('/parks', handelPark);
 
 function handelPark(request, response) {
-    let key = 'NGmpAlIwWG5l9s2B7J7FQgWcP5Yka9qhCKoGu0U2';
-    const url = `https://developer.nps.gov/api/v1/parks?parkCode=la&limit=10&api_key=${key}`;
+    let key = process.env.PARKS_API_KEY;
+    let city = request.query.city;
+    const url = `https://developer.nps.gov/api/v1/parks?q=${city}&limit=10&api_key=${key}`;
     superagent.get(url)
         .then(res => {
             let parks = [];
-            res.body.data.map(item=>{
+            res.body.data.map(item => {
                 parks.push(new Park(item))
                 return parks;
             })
