@@ -43,12 +43,12 @@ app.get('/location', handleLocation);
 const myLocalLocations = {};
 
 function handleLocation(req, response) {
-    let city = req.query.city;
-    console.log(city)
+    let search_query = req.query.city;
+    console.log(search_query)
     let key = process.env.GEOCODE_API_KEY;
     let SQL = 'SELECT * FROM location where name = $1';
 
-    client.query(SQL, [city]).then(result => {
+    client.query(SQL, [search_query]).then(result => {
         console.log("result >>> ", result);
         if (result.rowCount > 0) {
             response.send(result.rows[0]);
