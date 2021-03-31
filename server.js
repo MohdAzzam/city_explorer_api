@@ -46,7 +46,7 @@ function handleLocation(req, response) {
     let search_query = req.query.city;
     console.log(search_query)
     let key = process.env.GEOCODE_API_KEY;
-    let SQL = 'SELECT * FROM location where name = $1';
+    let SQL = 'SELECT * FROM location where search_query = $1';
 
     client.query(SQL, [search_query]).then(result => {
         console.log("result >>> ", result);
@@ -59,7 +59,7 @@ function handleLocation(req, response) {
                 const location = new City(search_query, locationData);
                 myLocalLocations.lat = locationData.lat;
                 myLocalLocations.lon = locationData.lon;
-                let SQL = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
+                let SQL = 'INSERT INTO location (search_query, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
                 let values = [search_query, locationData.display_name, locationData.lat, locationData.lon];
                 client.query(SQL, values).then(result => {
                     response.send(location);
