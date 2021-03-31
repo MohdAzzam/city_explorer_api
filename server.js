@@ -32,88 +32,46 @@ function City(city, geoData) {
 
 
 app.get('/', (req, res) => {
-    let name = req.query.name;
-    let SQL = `SELECT * FROM location WHERE name='${name}'`;
+    let SQL = `SELECT * FROM location`;
     client.query(SQL).then(result => {
         res.send(result.rows);
     });
 });
 
 
-
-
-let flag = false;
 app.get('/location', handleLocation);
 const myLocalLocations = {};
+
 function handleLocation(req, response) {
     let city = req.query.city;
+    console.log(city)
     let key = process.env.GEOCODE_API_KEY;
-    let SQL = `SELECT * FROM location WHERE name='${city}'`;
-    client.query(SQL).then(result => {
-        result.rows.forEach((element) => {
-            if (element.name === city) {
-                console.log('City Found in DB')
-                flag = true;
-                response.send(element);
-            }
-        });
+    let SQL = 'SELECT * FROM location where name = $1';
+
+    client.query(SQL, [city]).then(result => {
+        console.log("result >>> ", result);
+        if (result.rowCount > 0) {
+            response.send(result.rows[0]);
+        } else {
+            const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+            superagent.get(url).then(res => {
+                const locationData = res.body[0];
+                const location = new City(city, locationData);
+                myLocalLocations.lat = locationData.lat;
+                myLocalLocations.lon = locationData.lon;
+                let SQL = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
+                let values = [city, locationData.display_name, locationData.lat, locationData.lon];
+                client.query(SQL, values).then(result => {
+                    response.send(location);
+                });
+
+            }).catch((err) => {
+                console.log('ERROR !! ', err);
+            });
+        }
+
     });
-
-    if (flag) {
-        const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
-        superagent.get(url).then(res => {
-            const locationData = res.body[0];
-            const location = new City(city, locationData);
-            myLocalLocations.lat = locationData.lat;
-            myLocalLocations.lon = locationData.lon;
-            let SQL = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
-            let values = [city, locationData.display_name, locationData.lat, locationData.lon];
-            client.query(SQL, values).then(result => {
-                console.log('INSERT DONE');
-            })
-            response.send(location);
-        }).catch((err) => {
-            console.log('ERROR !! ', err);
-        });
-    }
-
-    // if (checkDb(city) !== []) {
-    //     console.log('FOUND')
-    // } else {
-    // const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
-    // superagent.get(url).then(res => {
-    //     const locationData = res.body[0];
-    //     const location = new City(city, locationData);
-    //     myLocalLocations.lat = locationData.lat;
-    //     myLocalLocations.lon = locationData.lon;
-    //     let SQL = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
-    //     let values = [city, locationData.display_name, locationData.lat, locationData.lon];
-    //     client.query(SQL, values).then(result => {
-    //         console.log('INSERT DONE');
-    //     })
-    //     response.send(location);
-    // }).catch((err) => {
-    //     console.log('ERROR !! ', err);
-    // });
-
-    // }
-
 }
-// function checkDb(locationName) {
-//     let SQL = `SELECT * FROM location WHERE name='${locationName}'`;
-//     client.query(SQL).then(result => {
-//         return result.rows;
-//     });
-// }
-
-// app.post('/location', (req, res) => {
-//     let SQL = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
-//     let values = [city, locationData.display_name, locationData.lat, locationData.lon];
-//     client.query(SQL, values).then(result => {
-//         console.log(result.rows);
-//         response.send(result.rows);
-//     });
-// })
 /* constractor function that handel the weather in the same location */
 
 function Weather(item) {
@@ -141,10 +99,10 @@ function handleWeather(request, response) {
 
 function Park(park) {
     this.name = park.fullName,
-        this.park_url = park.url,
-        // this.location=park[0].addresses,
-        this.fee = '0',
-        this.description = park.description
+    this.park_url = park.url,
+    // this.location=park[0].addresses,
+    this.fee = '0',
+    this.description = park.description
 }
 app.get('/parks', handelPark);
 
