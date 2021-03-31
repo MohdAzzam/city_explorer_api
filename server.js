@@ -13,6 +13,7 @@ console.log(process.env.DATABASE_URL);
 app.use(cors());
 
 
+
 client.connect().then(() => {
     console.log('Runnnnnnnnnn');
     app.listen(process.env.PORT || PORT, () => {
@@ -72,6 +73,7 @@ function handleLocation(req, response) {
 
     });
 }
+
 /* constractor function that handel the weather in the same location */
 
 function Weather(item) {
