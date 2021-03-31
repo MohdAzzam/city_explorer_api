@@ -99,8 +99,47 @@ Estimate of time needed to complete: 4 hour
 
 Start time: 6:30
 
-Finish time: In progress
+Finish time: 12:30
 
-Actual time needed to complete: 
+Actual time needed to complete: 6 hour 
+
+
+-------------------------------------------
+
+Number and name of feature:1. Movies: As a user, I want to request information about movies that are connected to the area, so that users can learn more about the location.
+
+Estimate of time needed to complete: 5 hour 
+
+Start time: 2:40
+
+Finish time: 7:40
+
+Actual time needed to complete: 3 hour 
+
+-----------------------------------------
+
+Number and name of feature: 2. Yelp: As a user, I want to request information about restaurants in the area so that users can view recommendations based on the search query.
+
+Estimate of time needed to complete: 5 hour 
+
+Start time: 8:00
+
+Finish time: 10:00
+
+Actual time needed to complete: 2 hour
+
+------------------------------------------
+
+Number and name of feature:3. Pagination
+
+Estimate of time needed to complete: 2 hour
+
+Start time: 10:00
+
+Finish time: 11:30
+
+Actual time needed to complete: 1 hour and 30 min
+
+-----------------------------------------------
 
 
