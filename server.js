@@ -160,14 +160,7 @@ app.get('/movies', (req, res) => {
         console.log('Somthing Went Wrong !!');
     })
 })
-/**
- 
-    "name": "Pike Place Chowder",
-    "image_url": "https://s3-media3.fl.yelpcdn.com/bphoto/ijju-wYoRAxWjHPTCxyQGQ/o.jpg",
-    "price": "$$   ",
-    "rating": "4.5",
-    "url": "https://www.yelp.com/biz/pike-place-chowder-seattle?adjust_creative=uK0rfzqjBmWNj6-d3ujNVA&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=uK0rfzqjBmWNj6-d3ujNVA"
- */
+
 function Yelp(obj) {
         this.name = obj.name,
         this.image_url = obj.image_url,
