@@ -53,14 +53,14 @@ function handleLocation(req, response) {
         if (result.rowCount > 0) {
             response.send(result.rows[0]);
         } else {
-            const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+            const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${search_query}&format=json`;
             superagent.get(url).then(res => {
                 const locationData = res.body[0];
-                const location = new City(city, locationData);
+                const location = new City(search_query, locationData);
                 myLocalLocations.lat = locationData.lat;
                 myLocalLocations.lon = locationData.lon;
                 let SQL = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
-                let values = [city, locationData.display_name, locationData.lat, locationData.lon];
+                let values = [search_query, locationData.display_name, locationData.lat, locationData.lon];
                 client.query(SQL, values).then(result => {
                     response.send(location);
                 });
