@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 'use strict';
 const PORT = 3000;
 require('dotenv').config();
@@ -45,14 +46,17 @@ const myLocalLocations = {};
 
 function handleLocation(req, response) {
     let search_query = req.query.city;
+    console.log('--------------ds------------------');
     console.log(search_query)
     let key = process.env.GEOCODE_API_KEY;
     let SQL = 'SELECT * FROM location where search_query = $1';
 
     client.query(SQL, [search_query]).then(result => {
-        console.log("result >>> ", result);
         if (result.rowCount > 0) {
             response.send(result.rows[0]);
+            console.log(result.rows[0]);
+            myLocalLocations.lat = result.rows[0].latitude;
+            myLocalLocations.lon = result.rows[0].longitude;
         } else {
             const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${search_query}&format=json`;
             superagent.get(url).then(res => {
@@ -64,6 +68,7 @@ function handleLocation(req, response) {
                 let values = [search_query, locationData.display_name, locationData.lat, locationData.lon];
                 client.query(SQL, values).then(result => {
                     response.send(location);
+                    console.log(location);
                 });
 
             }).catch((err) => {
@@ -100,17 +105,19 @@ function handleWeather(request, response) {
 }
 
 function Park(park) {
+
     this.name = park.fullName,
-    this.park_url = park.url,
-    // this.location=park[0].addresses,
-    this.fee = '0',
-    this.description = park.description
+        this.park_url = park.url,
+        // this.location=park[0].addresses,
+        this.fee = '0',
+        this.description = park.description
 }
 app.get('/parks', handelPark);
 
 function handelPark(request, response) {
     let key = process.env.PARKS_API_KEY;
-    let city = request.query.city;
+    let city = request.query.search_query;
+    console.log(city);
     const url = `https://developer.nps.gov/api/v1/parks?q=${city}&limit=10&api_key=${key}`;
     superagent.get(url)
         .then(res => {
@@ -126,7 +133,79 @@ function handelPark(request, response) {
         })
 }
 
+function Movies(data) {
+    this.title = data.title,
+        this.overview = data.overview,
+        this.average_votes = data.vote_average,
+        this.total_votes = data.vote_count,
+        this.image_url = data.poster_path,
+        this.popularity = data.popularity,
+        this.released_on = data.released_on
 
+}
+app.get('/movies', (req, res) => {
+    let key = process.env.MOVIE_API_KEY;
+    let city = req.query.search_query;
+    console.log(city);
+    // city='amman';//testing 
+    const url = `https://api.themoviedb.org/3/search/movie?api_key=${key}&query=${city}`;
+    superagent.get(url).then(result => {
+        // res.send(result.body.results);
+        console.log('----------------------------------------------------');
+        const finalResualt = result.body.results.map(item => new Movies(item));
+        // console.log(finalResualt);
+        res.send(finalResualt);
+
+    }).catch(err => {
+        console.log('Somthing Went Wrong !!');
+    })
+})
+/**
+ 
+    "name": "Pike Place Chowder",
+    "image_url": "https://s3-media3.fl.yelpcdn.com/bphoto/ijju-wYoRAxWjHPTCxyQGQ/o.jpg",
+    "price": "$$   ",
+    "rating": "4.5",
+    "url": "https://www.yelp.com/biz/pike-place-chowder-seattle?adjust_creative=uK0rfzqjBmWNj6-d3ujNVA&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=uK0rfzqjBmWNj6-d3ujNVA"
+ */
+function Yelp(obj) {
+        this.name = obj.name,
+        this.image_url = obj.image_url,
+        this.price = obj.price || '$$',
+        this.rating = obj.rating,
+        this.url = obj.url
+}
+app.get('/yelp', (req, res) => {
+    let key = process.env.YELP_API_KEY;
+    let city = req.query.search_query;
+    console.log(req.query.page);
+    let lat = myLocalLocations.lat;
+    let lon = myLocalLocations.lon;
+    console.log(lat, lon);
+    console.log('DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAy');
+    let url = `https://api.yelp.com/v3/businesses/search?categories=restaurants&limit=20&latitude=${lat}&longitude=${lon}`;
+    superagent.get(url)
+        .set('Authorization', 'Bearer FkskSX4w6hw1dQtMflGuGeMqKwkBF4a1tWUu_2uaV4MG6WAWWuEHpF6wLyls1qbb9tP8IVYB0FAUhkz1mqe2pR1x1J22ppdggNmAPrgz9i-f9DBibxDEMFoczaBkYHYx')
+        .then(result => {
+            // console.log(req.query.page);
+            const allDres = result.body.businesses.map(item => new Yelp(item))
+            console.log(typeof req.query.page,req.query.page);
+            if (req.query.page === '1') {
+                console.log('is this gonna be happen');
+                res.send(Object.entries(allDres).slice(0, 5));
+                console.log(Object.entries(allDres).slice(0, 5));
+            } else if (req.query.page === '2') {
+                res.send(Object.entries(allDres).slice(5, 10))
+            } else if (req.query.page === '3') {
+                res.send(Object.entries(allDres).slice(10, 15))
+            }else if(req.query.page==='4'){
+                res.send(Object.entries(allDres).slice(15,20))
+            }else{
+                res.send('There is no more');
+            }
+        })
+        .catch(err => console.log('ERROR !!! POSTMAN', err))
+});
 app.use('*', (req, res) => {
     let status = 404;
     res.status().send({ status: status, message: 'Page Not Found' });
