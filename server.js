@@ -138,7 +138,7 @@ function Movies(data) {
         this.overview = data.overview,
         this.average_votes = data.vote_average,
         this.total_votes = data.vote_count,
-        this.image_url = data.poster_path,
+        this.image_url ='https://image.tmdb.org/t/p/w500/'+data.poster_path,
         this.popularity = data.popularity,
         this.released_on = data.released_on
 
@@ -151,9 +151,11 @@ app.get('/movies', (req, res) => {
     const url = `https://api.themoviedb.org/3/search/movie?api_key=${key}&query=${city}`;
     superagent.get(url).then(result => {
         // res.send(result.body.results);
+        console.log(result.body);
         console.log('----------------------------------------------------');
         const finalResualt = result.body.results.map(item => new Movies(item));
         // console.log(finalResualt);
+        
         res.send(finalResualt);
 
     }).catch(err => {
@@ -168,6 +170,7 @@ function Yelp(obj) {
         this.rating = obj.rating,
         this.url = obj.url
 }
+
 app.get('/yelp', (req, res) => {
     let key = process.env.YELP_API_KEY;
     let city = req.query.search_query;
@@ -176,26 +179,28 @@ app.get('/yelp', (req, res) => {
     let lon = myLocalLocations.lon;
     console.log(lat, lon);
     console.log('DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAy');
-    let url = `https://api.yelp.com/v3/businesses/search?categories=restaurants&limit=20&latitude=${lat}&longitude=${lon}`;
+    let url = `https://api.yelp.com/v3/businesses/search?categories=restaurants&limit=50&latitude=${lat}&longitude=${lon}`;
     superagent.get(url)
-        .set('Authorization', 'Bearer FkskSX4w6hw1dQtMflGuGeMqKwkBF4a1tWUu_2uaV4MG6WAWWuEHpF6wLyls1qbb9tP8IVYB0FAUhkz1mqe2pR1x1J22ppdggNmAPrgz9i-f9DBibxDEMFoczaBkYHYx')
+        .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
         .then(result => {
-            // console.log(req.query.page);
+            let page = parseInt(req.query.page);
+            console.log(page);
             const allDres = result.body.businesses.map(item => new Yelp(item))
-            console.log(typeof req.query.page,req.query.page);
-            if (req.query.page === '1') {
-                console.log('is this gonna be happen');
-                res.send(Object.entries(allDres).slice(0, 5));
-                console.log(Object.entries(allDres).slice(0, 5));
-            } else if (req.query.page === '2') {
-                res.send(Object.entries(allDres).slice(5, 10))
-            } else if (req.query.page === '3') {
-                res.send(Object.entries(allDres).slice(10, 15))
-            }else if(req.query.page==='4'){
-                res.send(Object.entries(allDres).slice(15,20))
-            }else{
-                res.send('There is no more');
-            }
+            // console.log(typeof req.query.page,req.query.page);
+            res.send(allDres.slice((page -1)*5,page*5))
+            // if (req.query.page === '1') {
+            //     console.log('is this gonna be happen');
+            //     res.send(Object.entries(allDres).slice(0, 5));
+            //     console.log(Object.entries(allDres).slice(0, 5));
+            // } else if (req.query.page === '2') {
+            //     res.send(Object.entries(allDres).slice(5, 10))
+            // } else if (req.query.page === '3') {
+            //     res.send(Object.entries(allDres).slice(10, 15))
+            // }else if(req.query.page==='4'){
+            //     res.send(Object.entries(allDres).slice(15,20))
+            // }else{
+            //     res.send('There is no more');
+            // }
         })
         .catch(err => console.log('ERROR !!! POSTMAN', err))
 });
