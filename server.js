@@ -1,21 +1,21 @@
 /* eslint-disable indent */
 'use strict';
-const PORT = 3000;
-require('dotenv').config();
+const PORT = 3000; //the port we are connected to it
+require('dotenv').config(); //dotenv--configration
 const express = require('express'); // express framwork
 const cors = require('cors'); //api call out of domain
-const pg = require('pg');
-const superagent = require('superagent');
-const app = express();
+const pg = require('pg'); //our Db
+const superagent = require('superagent'); //the super agent to get the json data from api
+const app = express(); // to usiing express in our app
 
-const client = new pg.Client(process.env.DATABASE_URL);
-console.log(process.env.DATABASE_URL);
+const client = new pg.Client(process.env.DATABASE_URL); // object from pg  to use in our app to connect our DB
+// console.log(process.env.DATABASE_URL);
 // client.on('error', err => console.log("PG PROBLEM!!!"));
 app.use(cors());
 
 
 
-client.connect().then(() => {
+client.connect().then(() => { // on this line we connect to the db then we connect to our server
     console.log('Runnnnnnnnnn');
     app.listen(process.env.PORT || PORT, () => {
         console.log('Server Start at ' + PORT + ' .... ');
@@ -43,16 +43,15 @@ app.get('/', (req, res) => {
 
 app.get('/location', handleLocation);
 const myLocalLocations = {};
-
 function handleLocation(req, response) {
     let search_query = req.query.city;
-    console.log('--------------ds------------------');
     console.log(search_query)
     let key = process.env.GEOCODE_API_KEY;
     let SQL = 'SELECT * FROM location where search_query = $1';
 
     client.query(SQL, [search_query]).then(result => {
         if (result.rowCount > 0) {
+            console.log('From DB');
             response.send(result.rows[0]);
             console.log(result.rows[0]);
             myLocalLocations.lat = result.rows[0].latitude;
@@ -64,7 +63,7 @@ function handleLocation(req, response) {
                 const location = new City(search_query, locationData);
                 myLocalLocations.lat = locationData.lat;
                 myLocalLocations.lon = locationData.lon;
-                let SQL = 'INSERT INTO location (search_query, display_name,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
+                let SQL = 'INSERT INTO location (search_query, formatted_query,latitude,longitude) VALUES($1, $2,$3,$4) RETURNING *';
                 let values = [search_query, locationData.display_name, locationData.lat, locationData.lon];
                 client.query(SQL, values).then(result => {
                     response.send(location);
@@ -72,6 +71,7 @@ function handleLocation(req, response) {
                 });
 
             }).catch((err) => {
+                response.status(500).send('No Data Found')
                 console.log('ERROR !! ', err);
             });
         }
@@ -108,7 +108,6 @@ function Park(park) {
 
     this.name = park.fullName,
         this.park_url = park.url,
-        // this.location=park[0].addresses,
         this.fee = '0',
         this.description = park.description
 }
@@ -147,17 +146,12 @@ app.get('/movies', (req, res) => {
     let key = process.env.MOVIE_API_KEY;
     let city = req.query.search_query;
     console.log(city);
-    // city='amman';//testing 
+    // city='amman';//testing
     const url = `https://api.themoviedb.org/3/search/movie?api_key=${key}&query=${city}`;
     superagent.get(url).then(result => {
-        // res.send(result.body.results);
         console.log(result.body);
-        console.log('----------------------------------------------------');
         const finalResualt = result.body.results.map(item => new Movies(item));
-        // console.log(finalResualt);
-        
         res.send(finalResualt);
-
     }).catch(err => {
         console.log('Somthing Went Wrong !!');
     })
@@ -178,7 +172,6 @@ app.get('/yelp', (req, res) => {
     let lat = myLocalLocations.lat;
     let lon = myLocalLocations.lon;
     console.log(lat, lon);
-    console.log('DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAy');
     let url = `https://api.yelp.com/v3/businesses/search?categories=restaurants&limit=50&latitude=${lat}&longitude=${lon}`;
     superagent.get(url)
         .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
@@ -186,24 +179,11 @@ app.get('/yelp', (req, res) => {
             let page = parseInt(req.query.page);
             console.log(page);
             const allDres = result.body.businesses.map(item => new Yelp(item))
-            // console.log(typeof req.query.page,req.query.page);
             res.send(allDres.slice((page -1)*5,page*5))
-            // if (req.query.page === '1') {
-            //     console.log('is this gonna be happen');
-            //     res.send(Object.entries(allDres).slice(0, 5));
-            //     console.log(Object.entries(allDres).slice(0, 5));
-            // } else if (req.query.page === '2') {
-            //     res.send(Object.entries(allDres).slice(5, 10))
-            // } else if (req.query.page === '3') {
-            //     res.send(Object.entries(allDres).slice(10, 15))
-            // }else if(req.query.page==='4'){
-            //     res.send(Object.entries(allDres).slice(15,20))
-            // }else{
-            //     res.send('There is no more');
-            // }
         })
-        .catch(err => console.log('ERROR !!! POSTMAN', err))
+        .catch(err => res.status(500).send('Sorry We Dont have any data for this location'))
 });
+
 app.use('*', (req, res) => {
     let status = 404;
     res.status().send({ status: status, message: 'Page Not Found' });

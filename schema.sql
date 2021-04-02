@@ -2,7 +2,7 @@ drop table if exists location;
 drop table if exists weather;
 drop table if exists Park;
 
-CREATE  TABLE IF NOT EXISTS location (search_query VARCHAR(255),display_name VARCHAR(255),latitude VARCHAR(100) ,longitude VARCHAR(100));
+CREATE  TABLE IF NOT EXISTS location (search_query VARCHAR(255),formatted_query VARCHAR(255),latitude VARCHAR(100) ,longitude VARCHAR(100));
 
 CREATE  TABLE IF NOT EXISTS weather (time VARCHAR(155),forecast VARCHAR (255));
 
